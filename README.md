@@ -6,6 +6,24 @@ A Java application that demonstrates interaction with Uniswap on the Ethereum Se
 
 This project showcases practical blockchain development skills using Java and Web3j, implementing a command-line interface for token swapping on Uniswap. It serves as a demonstration of DEX integration and Web3 development capabilities.
 
+## Architecture
+
+```mermaid
+graph TD
+    A["User"] -->|Interacts with| B["CLI (Command-Line Interface)"]
+    B -->|Calls| C["SwapManager"]
+    C -->|Uses| D["Web3j Library"]
+    D -->|Connects to| E["Ethereum Sepolia Testnet"]
+    E -->|Hosts| F["Uniswap Router Contract"]
+    C -->|Manages| G["TransactionHandler"]
+    G -->|Handles| H["Token Approvals & Swaps"]
+    H -->|Executes on| F
+    D -->|Queries| I["Blockchain Data"]
+    I -->|Provides| J["Token Balances & Gas Prices"]
+    C -->|Logs| K["ErrorHandler"]
+    K -->|Displays| B
+```
+
 ## Prerequisites
 
 - Java JDK 17 or higher

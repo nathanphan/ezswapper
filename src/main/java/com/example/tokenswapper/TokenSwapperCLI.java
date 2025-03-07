@@ -9,6 +9,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;  // Add this import
 import java.util.concurrent.Callable;
 
 @Command(
@@ -45,12 +46,50 @@ public class TokenSwapperCLI implements Callable<Integer> {
         // Load credentials
         credentials = Credentials.create(dotenv.get("WALLET_PRIVATE_KEY"));
         
-        // Get Uniswap router address
+        // Get Uniswap router address and WETH address
         uniswapRouterAddress = dotenv.get("UNISWAP_ROUTER_ADDRESS");
+        String wethAddress = dotenv.get("WETH_ADDRESS");
 
-        // TODO: Implement swap logic
-        System.out.println("Preparing to swap " + amount + " " + fromToken + " to " + toToken);
-        return 0;
+        // Get gas configuration from environment
+        BigInteger gasLimit = BigInteger.valueOf(Long.parseLong(dotenv.get("GAS_LIMIT")));
+        BigInteger gasPrice = BigInteger.valueOf(
+            Long.parseLong(dotenv.get("GAS_PRICE_GWEI")) * 1_000_000_000L // Convert Gwei to Wei
+        );
+
+        // Create UniswapService instance
+        UniswapService uniswapService = new UniswapService(
+            web3j,
+            credentials,
+            uniswapRouterAddress,
+            wethAddress,
+            gasLimit,
+            gasPrice
+        );
+
+        // Calculate deadline (30 minutes from now)
+        BigInteger deadline = BigInteger.valueOf(System.currentTimeMillis() / 1000 + 1800);
+
+        try {
+            String txHash;
+            if ("ETH".equalsIgnoreCase(fromToken)) {
+                System.out.println("Swapping " + amount + " ETH for tokens...");
+                txHash = uniswapService.swapExactETHForTokens(amount, toToken, deadline).get();
+            } else if ("ETH".equalsIgnoreCase(toToken)) {
+                System.out.println("Swapping " + amount + " tokens for ETH...");
+                txHash = uniswapService.swapExactTokensForETH(amount, fromToken, deadline).get();
+            } else {
+                System.err.println("Currently only ETH to Token or Token to ETH swaps are supported");
+                return 1;
+            }
+
+            System.out.println("Transaction submitted successfully!");
+            System.out.println("Transaction hash: " + txHash);
+            System.out.println("View on Etherscan: https://sepolia.etherscan.io/tx/" + txHash);
+            return 0;
+        } catch (Exception e) {
+            System.err.println("Error during swap: " + e.getMessage());
+            return 1;
+        }
     }
 
     public static void main(String[] args) {
